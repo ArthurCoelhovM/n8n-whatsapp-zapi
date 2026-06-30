@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n-whatsapp
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      # --- n8n básico ---
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+
+      # --- Credenciais Z-API (crie um .env e não commite!) ---
+      - ZAPI_INSTANCE_ID=${ZAPI_INSTANCE_ID}
+      - ZAPI_TOKEN=${ZAPI_TOKEN}
+      - ZAPI_CLIENT_TOKEN=${ZAPI_CLIENT_TOKEN}
+
+      # --- Segurança básica (opcional em dev) ---
+      - N8N_BASIC_AUTH_ACTIVE=false
+
+      # --- Timezone ---
+      - GENERIC_TIMEZONE=America/Sao_Paulo
+      - TZ=America/Sao_Paulo
+
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:
+
+      # --- Supabase ---
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
