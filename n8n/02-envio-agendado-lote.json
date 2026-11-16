@@ -1,0 +1,364 @@
+{
+  "id": "EnvioLote0000001",
+  "name": "02 - Envio agendado em lote",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "fd1f46c6-fc67-4656-a322-04b82b1e1fc1",
+      "name": "Dias úteis às 9h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "e9fc4766-c0e7-4b7c-b1b1-4bbea3706fe5",
+      "name": "Teste manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "contatos",
+        "returnAll": false,
+        "limit": "={{ Number($env.LIMITE_LOTE) || 3 }}",
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "ativo",
+              "condition": "eq",
+              "keyValue": "true"
+            }
+          ]
+        }
+      },
+      "id": "1fff6dbe-faaa-48fe-ae14-944f6a71c345",
+      "name": "Buscar contatos ativos",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        240,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "de070f68-e46b-4f13-8e15-07f70fb9a68c",
+      "name": "Um por vez",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        480,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const TEMPLATE = 'Olá, {nome}! Tudo bem com você?';\n\nfunction normalizarTelefone(telefone) {\n  const digitos = String(telefone ?? '').replace(/\\D/g, '');\n  return /^55\\d{10,11}$/.test(digitos) ? digitos : null;\n}\n\nfunction mascararTelefone(telefone) {\n  const digitos = String(telefone ?? '').replace(/\\D/g, '');\n  if (digitos.length < 8) return '*'.repeat(digitos.length);\n  return digitos.slice(0, 4) + '*'.repeat(digitos.length - 8) + digitos.slice(-4);\n}\n\nfunction sanitizarNome(nome) {\n  if (!nome) return null;\n  let limpo = String(nome)\n    .replace(/[^A-Za-zÀ-ÖØ-öø-ÿ' -]/g, '')\n    .replace(/\\s+/g, ' ')\n    .replace(/^[ '-]+|[ '-]+$/g, '');\n  limpo = limpo.slice(0, 40).trim();\n  if (!limpo) return null;\n  return limpo.split(' ').map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');\n}\n\nfunction montarMensagem(nome, template) {\n  if (nome) return template.split('{nome}').join(nome);\n  return template.replace(/,?\\s*\\{nome\\}/g, '');\n}\n\nreturn $input.all().map(item => {\n  const contato = item.json;\n  const telefone = normalizarTelefone(contato.telefone);\n  const nome = sanitizarNome(contato.nome);\n  return {\n    json: {\n      contatoId: contato.id,\n      telefone,\n      telefoneMascarado: mascararTelefone(contato.telefone),\n      mensagem: montarMensagem(nome, TEMPLATE)\n    }\n  };\n});\n"
+      },
+      "id": "cd812df7-d3a6-476a-a272-91cb6b64af9b",
+      "name": "Montar mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.z-api.io/instances/{{ $env.ZAPI_INSTANCE_ID }}/token/{{ $env.ZAPI_TOKEN }}/send-text",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ phone: $json.telefone, message: $json.mensagem }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "e07601e4-8528-4c5f-a4b3-8c7969383811",
+      "name": "Enviar pela Z-API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        200
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "envios",
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "contato_id",
+              "fieldValue": "={{ $('Montar mensagem').item.json.contatoId }}"
+            },
+            {
+              "fieldId": "telefone",
+              "fieldValue": "={{ $('Montar mensagem').item.json.telefoneMascarado }}"
+            },
+            {
+              "fieldId": "origem",
+              "fieldValue": "n8n-lote"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "enviado"
+            },
+            {
+              "fieldId": "message_id",
+              "fieldValue": "={{ $json.messageId }}"
+            }
+          ]
+        }
+      },
+      "id": "05bacc02-cbcf-4203-84c1-2792e145143d",
+      "name": "Registrar envio",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "envios",
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "contato_id",
+              "fieldValue": "={{ $('Montar mensagem').item.json.contatoId }}"
+            },
+            {
+              "fieldId": "telefone",
+              "fieldValue": "={{ $('Montar mensagem').item.json.telefoneMascarado }}"
+            },
+            {
+              "fieldId": "origem",
+              "fieldValue": "n8n-lote"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "erro"
+            }
+          ]
+        }
+      },
+      "id": "97c59e40-ea74-4766-ac70-30751d8b7ebe",
+      "name": "Registrar falha",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "log_erros",
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "origem",
+              "fieldValue": "n8n-lote"
+            },
+            {
+              "fieldId": "etapa",
+              "fieldValue": "Enviar pela Z-API"
+            },
+            {
+              "fieldId": "mensagem",
+              "fieldValue": "={{ $('Enviar pela Z-API').item.json.error?.message || 'Falha no envio' }}"
+            },
+            {
+              "fieldId": "detalhes",
+              "fieldValue": "={{ JSON.stringify({ contato_id: $('Montar mensagem').item.json.contatoId }) }}"
+            }
+          ]
+        }
+      },
+      "id": "2a0e1d37-26e4-44c9-8bed-f80cd3272865",
+      "name": "Registrar em log_erros",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "id": "12e5f3ff-8510-439b-b37d-d027dc155d44",
+      "name": "Esperar 3 s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        100
+      ],
+      "webhookId": "e7099fc8-aeaa-428b-8835-5ea026668647"
+    }
+  ],
+  "connections": {
+    "Dias úteis às 9h": {
+      "main": [
+        [
+          {
+            "node": "Buscar contatos ativos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Teste manual": {
+      "main": [
+        [
+          {
+            "node": "Buscar contatos ativos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar contatos ativos": {
+      "main": [
+        [
+          {
+            "node": "Um por vez",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Um por vez": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Montar mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar mensagem": {
+      "main": [
+        [
+          {
+            "node": "Enviar pela Z-API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar pela Z-API": {
+      "main": [
+        [
+          {
+            "node": "Registrar envio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar falha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar envio": {
+      "main": [
+        [
+          {
+            "node": "Esperar 3 s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar falha": {
+      "main": [
+        [
+          {
+            "node": "Registrar em log_erros",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar em log_erros": {
+      "main": [
+        [
+          {
+            "node": "Esperar 3 s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esperar 3 s": {
+      "main": [
+        [
+          {
+            "node": "Um por vez",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo",
+    "errorWorkflow": "ErrosWhatsapp001"
+  },
+  "pinData": {},
+  "active": false
+}

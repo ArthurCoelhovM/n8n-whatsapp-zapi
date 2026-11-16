@@ -1,0 +1,75 @@
+{
+  "id": "ErrosWhatsapp001",
+  "name": "03 - Registro de erros",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "f97ba23d-0319-4913-a321-24770a097f97",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const dados = $input.first().json;\nconst execucao = dados.execution || {};\nconst erro = execucao.error || {};\n\nreturn [{\n  json: {\n    origem: 'n8n',\n    etapa: execucao.lastNodeExecuted || erro.node?.name || 'desconhecida',\n    mensagem: String(erro.message || 'Erro sem mensagem').slice(0, 500),\n    detalhes: {\n      fluxo: dados.workflow?.name,\n      execucao: execucao.id,\n      modo: execucao.mode\n    }\n  }\n}];\n"
+      },
+      "id": "1c712c3d-7b51-4235-b27e-9c4d18ac5b28",
+      "name": "Extrair dados do erro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "log_erros",
+        "dataToSend": "autoMapInputData"
+      },
+      "id": "1f154278-93ff-44a7-ab02-da7f1b4faa3d",
+      "name": "Gravar em log_erros",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        480,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extrair dados do erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair dados do erro": {
+      "main": [
+        [
+          {
+            "node": "Gravar em log_erros",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "pinData": {},
+  "active": false
+}
