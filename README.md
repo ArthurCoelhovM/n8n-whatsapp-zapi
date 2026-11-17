@@ -76,7 +76,7 @@ Pré-requisitos: Docker, uma conta no [Supabase](https://supabase.com) e uma con
 5. Em http://localhost:5678, crie as credenciais e selecione-as nos nós:
    - **Supabase API**: URL do projeto e chave `service_role`
    - **Header Auth**: nome `Authorization`, valor = `Bearer ` seguido da sua Secret Key da Z-API Omni
-6. Publique (ative) os fluxos 01 e 02.
+6. Publique (ative) os fluxos 01 e 03. O 03 precisa estar ativo para o n8n chamá-lo quando outro fluxo falhar. O 02 só deve ser ativado se quiser o envio automático nos dias úteis às 9h; para testar, rode pelo gatilho "Teste manual".
 
 ## Como testar
 
