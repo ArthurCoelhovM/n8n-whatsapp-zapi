@@ -9,7 +9,7 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "67c3cc16-60a5-48d2-8a35-62715a944cfd",
+      "id": "f48ce276-a3d8-4859-aea8-694a16575e6d",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -17,13 +17,13 @@
         0,
         100
       ],
-      "webhookId": "a9bd4375-2108-4f06-897a-805285f98972"
+      "webhookId": "05154739-dc2e-414b-bef2-386f06ed88d7"
     },
     {
       "parameters": {
         "jsCode": "const TEMPLATE = 'Olá, {nome}! Tudo bem com você?';\n\nfunction normalizarTelefone(telefone) {\n  const digitos = String(telefone ?? '').replace(/\\D/g, '');\n  return /^55\\d{10,11}$/.test(digitos) ? digitos : null;\n}\n\nfunction mascararTelefone(telefone) {\n  const digitos = String(telefone ?? '').replace(/\\D/g, '');\n  if (digitos.length < 8) return '*'.repeat(digitos.length);\n  return digitos.slice(0, 4) + '*'.repeat(digitos.length - 8) + digitos.slice(-4);\n}\n\nfunction sanitizarNome(nome) {\n  if (!nome) return null;\n  let limpo = String(nome)\n    .replace(/[^A-Za-zÀ-ÖØ-öø-ÿ' -]/g, '')\n    .replace(/\\s+/g, ' ')\n    .replace(/^[ '-]+|[ '-]+$/g, '');\n  limpo = limpo.slice(0, 40).trim();\n  if (!limpo) return null;\n  return limpo.split(' ').map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');\n}\n\nfunction montarMensagem(nome, template) {\n  if (nome) return template.split('{nome}').join(nome);\n  return template.replace(/,?\\s*\\{nome\\}/g, '');\n}\n\nconst corpo = $input.first().json.body || {};\nconst telefone = normalizarTelefone(corpo.telefone);\n\nif (!telefone) {\n  return [{ json: { valido: false, erro: 'Telefone inválido: use DDI 55 + DDD + número, só dígitos' } }];\n}\n\nconst template = typeof corpo.mensagem === 'string' && corpo.mensagem.trim()\n  ? corpo.mensagem.trim().slice(0, 1000)\n  : TEMPLATE;\nconst nome = sanitizarNome(corpo.nome);\n\nreturn [{\n  json: {\n    valido: true,\n    telefone,\n    telefoneMascarado: mascararTelefone(telefone),\n    nome,\n    mensagem: montarMensagem(nome, template)\n  }\n}];\n"
       },
-      "id": "5c4991e5-51a4-4438-89ef-3d69f2d59e0c",
+      "id": "d3fdd0ea-7926-4966-978a-04f6c303cebc",
       "name": "Validar entrada",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -43,7 +43,7 @@
           },
           "conditions": [
             {
-              "id": "ac9945fd-4621-4e83-b713-62de03a02bb7",
+              "id": "3edc250c-f1d4-461b-bf12-5133fad6a653",
               "leftValue": "={{ $json.valido }}",
               "rightValue": "",
               "operator": {
@@ -58,7 +58,7 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "8f340128-0f94-48ee-89b2-72cfb8f2a29c",
+      "id": "6c01d5e0-4056-4865-943b-23206a2f1484",
       "name": "Dados válidos?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -75,7 +75,7 @@
           "responseCode": 400
         }
       },
-      "id": "3af942e1-5efc-4641-87b2-07b60f66d506",
+      "id": "a04d4c0c-fd36-4a04-93fd-1491c1da55cf",
       "name": "Responder 400",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -87,17 +87,17 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://api.z-api.io/instances/{{ $env.ZAPI_INSTANCE_ID }}/token/{{ $env.ZAPI_TOKEN }}/send-text",
+        "url": "=https://api.omni.z-api.io/v1/channels/{{ $env.OMNI_CHANNEL_ID }}/messages",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ phone: $json.telefone, message: $json.mensagem }) }}",
+        "jsonBody": "={{ JSON.stringify({ recipient: { identifier: $json.telefone }, content: { type: 'TEXT', body: { message: $json.mensagem } } }) }}",
         "options": {
           "timeout": 15000
         }
       },
-      "id": "0a03fcff-db86-4165-bb2e-2df3b02199d2",
+      "id": "55f73d87-0f62-4510-8250-20f5baf3a9ae",
       "name": "Enviar pela Z-API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -135,7 +135,7 @@
           ]
         }
       },
-      "id": "0fabeeeb-f3b8-4634-b188-750373419dea",
+      "id": "0b85d55d-616c-4734-a916-b46d1e7f9b81",
       "name": "Registrar envio",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
@@ -152,7 +152,7 @@
           "responseCode": 200
         }
       },
-      "id": "546dc644-e587-479b-adab-24cbf1b4826e",
+      "id": "da0275a4-d0fc-4ea5-b4db-23cadf662659",
       "name": "Responder 200",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,

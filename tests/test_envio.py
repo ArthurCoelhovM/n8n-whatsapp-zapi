@@ -1,6 +1,6 @@
 from config import Config
 import main
-from zapi import ErroZapi
+from omni import ErroOmni
 
 
 class BancoFalso:
@@ -16,7 +16,7 @@ class BancoFalso:
 
 
 def criar_config(dry_run=False):
-    return Config("url", "chave", "inst", "tok", "client", 3, 0, "Olá, {nome}!", dry_run)
+    return Config("url", "chave", "segredo", "canal", 3, 0, "Olá, {nome}!", dry_run)
 
 
 def test_envio_com_sucesso_grava_telefone_mascarado(monkeypatch):
@@ -27,16 +27,16 @@ def test_envio_com_sucesso_grava_telefone_mascarado(monkeypatch):
     assert banco.envios == [(1, "5551*****4321", "enviado", "id-123")]
 
 
-def test_erro_da_zapi_nao_interrompe_e_vai_para_log(monkeypatch):
+def test_erro_da_api_nao_interrompe_e_vai_para_log(monkeypatch):
     def falhar(cfg, tel, msg):
-        raise ErroZapi("Z-API respondeu 401")
+        raise ErroOmni("Z-API Omni respondeu 401")
 
     monkeypatch.setattr(main, "enviar_texto", falhar)
     banco = BancoFalso()
     ok = main.processar_contato(banco, criar_config(), {"id": 2, "nome": "Bruno", "telefone": "5551987654321"})
     assert not ok
     assert banco.envios[0][2] == "erro"
-    assert banco.erros == [("envio", "Z-API respondeu 401")]
+    assert banco.erros == [("envio", "Z-API Omni respondeu 401")]
 
 
 def test_dry_run_nao_envia(monkeypatch, caplog):

@@ -5,7 +5,7 @@ import time
 from banco import Banco
 from config import ConfigInvalida, carregar_config
 from utils import mascarar_telefone, montar_mensagem, normalizar_telefone, sanitizar_nome
-from zapi import ErroZapi, enviar_texto
+from omni import ErroOmni, enviar_texto
 
 logging.basicConfig(
     level=logging.INFO,
@@ -40,7 +40,7 @@ def processar_contato(banco, config, contato):
 
     try:
         message_id = enviar_texto(config, telefone, mensagem)
-    except ErroZapi as erro:
+    except ErroOmni as erro:
         log.error("Falha ao enviar para %s: %s", mascarado, erro)
         banco.registrar_envio(contato.get("id"), mascarado, "erro")
         registrar_erro_seguro(banco, "envio", str(erro), {"contato_id": contato.get("id")})

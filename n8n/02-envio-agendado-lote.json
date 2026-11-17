@@ -13,7 +13,7 @@
           ]
         }
       },
-      "id": "fd1f46c6-fc67-4656-a322-04b82b1e1fc1",
+      "id": "a26dcffd-d0b4-45ce-876a-335809685df0",
       "name": "Dias úteis às 9h",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -24,7 +24,7 @@
     },
     {
       "parameters": {},
-      "id": "e9fc4766-c0e7-4b7c-b1b1-4bbea3706fe5",
+      "id": "40c4e599-342f-4f29-aa12-0c7bcfe0b73a",
       "name": "Teste manual",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -51,7 +51,7 @@
           ]
         }
       },
-      "id": "1fff6dbe-faaa-48fe-ae14-944f6a71c345",
+      "id": "f699071b-c12b-4a5c-85b6-61a47a98ec32",
       "name": "Buscar contatos ativos",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
@@ -65,7 +65,7 @@
         "batchSize": 1,
         "options": {}
       },
-      "id": "de070f68-e46b-4f13-8e15-07f70fb9a68c",
+      "id": "ebba0781-cad5-4a27-98bf-6f7b7d9c651e",
       "name": "Um por vez",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
@@ -78,7 +78,7 @@
       "parameters": {
         "jsCode": "const TEMPLATE = 'Olá, {nome}! Tudo bem com você?';\n\nfunction normalizarTelefone(telefone) {\n  const digitos = String(telefone ?? '').replace(/\\D/g, '');\n  return /^55\\d{10,11}$/.test(digitos) ? digitos : null;\n}\n\nfunction mascararTelefone(telefone) {\n  const digitos = String(telefone ?? '').replace(/\\D/g, '');\n  if (digitos.length < 8) return '*'.repeat(digitos.length);\n  return digitos.slice(0, 4) + '*'.repeat(digitos.length - 8) + digitos.slice(-4);\n}\n\nfunction sanitizarNome(nome) {\n  if (!nome) return null;\n  let limpo = String(nome)\n    .replace(/[^A-Za-zÀ-ÖØ-öø-ÿ' -]/g, '')\n    .replace(/\\s+/g, ' ')\n    .replace(/^[ '-]+|[ '-]+$/g, '');\n  limpo = limpo.slice(0, 40).trim();\n  if (!limpo) return null;\n  return limpo.split(' ').map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');\n}\n\nfunction montarMensagem(nome, template) {\n  if (nome) return template.split('{nome}').join(nome);\n  return template.replace(/,?\\s*\\{nome\\}/g, '');\n}\n\nreturn $input.all().map(item => {\n  const contato = item.json;\n  const telefone = normalizarTelefone(contato.telefone);\n  const nome = sanitizarNome(contato.nome);\n  return {\n    json: {\n      contatoId: contato.id,\n      telefone,\n      telefoneMascarado: mascararTelefone(contato.telefone),\n      mensagem: montarMensagem(nome, TEMPLATE)\n    }\n  };\n});\n"
       },
-      "id": "cd812df7-d3a6-476a-a272-91cb6b64af9b",
+      "id": "00a7f1d7-2874-4a46-820e-baa4cf8c3853",
       "name": "Montar mensagem",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -90,17 +90,17 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://api.z-api.io/instances/{{ $env.ZAPI_INSTANCE_ID }}/token/{{ $env.ZAPI_TOKEN }}/send-text",
+        "url": "=https://api.omni.z-api.io/v1/channels/{{ $env.OMNI_CHANNEL_ID }}/messages",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ phone: $json.telefone, message: $json.mensagem }) }}",
+        "jsonBody": "={{ JSON.stringify({ recipient: { identifier: $json.telefone }, content: { type: 'TEXT', body: { message: $json.mensagem } } }) }}",
         "options": {
           "timeout": 15000
         }
       },
-      "id": "e07601e4-8528-4c5f-a4b3-8c7969383811",
+      "id": "c34c12ea-b3dd-4493-88e5-66223890aad4",
       "name": "Enviar pela Z-API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -140,7 +140,7 @@
           ]
         }
       },
-      "id": "05bacc02-cbcf-4203-84c1-2792e145143d",
+      "id": "c5c9f03a-4a46-4451-b6cb-fe69b95cb41a",
       "name": "Registrar envio",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
@@ -175,7 +175,7 @@
           ]
         }
       },
-      "id": "97c59e40-ea74-4766-ac70-30751d8b7ebe",
+      "id": "4356a768-f8ff-4c1f-8510-1213ec092c2a",
       "name": "Registrar falha",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
@@ -210,7 +210,7 @@
           ]
         }
       },
-      "id": "2a0e1d37-26e4-44c9-8bed-f80cd3272865",
+      "id": "34d469d8-29ab-47f0-a35c-60c0efc8d4de",
       "name": "Registrar em log_erros",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
@@ -223,7 +223,7 @@
       "parameters": {
         "amount": 3
       },
-      "id": "12e5f3ff-8510-439b-b37d-d027dc155d44",
+      "id": "0bc2607c-116f-4cd0-85e9-14415afe7367",
       "name": "Esperar 3 s",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
@@ -231,7 +231,7 @@
         1680,
         100
       ],
-      "webhookId": "e7099fc8-aeaa-428b-8835-5ea026668647"
+      "webhookId": "4776c4d6-82b4-4457-92d5-e1d05c859eaf"
     }
   ],
   "connections": {

@@ -1,4 +1,4 @@
-# Automação de WhatsApp com n8n, Z-API e Supabase
+# Automação de WhatsApp com n8n, Z-API Omni e Supabase
 
 Envio de mensagens de WhatsApp personalizadas para contatos guardados no Supabase, de dois jeitos: fluxos no n8n (sob demanda por webhook e em lote agendado) e um script Python equivalente. Os envios e os erros ficam registrados no banco, e o ambiente sobe com Docker Compose.
 
@@ -26,6 +26,20 @@ Envio de mensagens de WhatsApp personalizadas para contatos guardados no Supabas
 | `envios` | Histórico de cada envio, com telefone já mascarado e o `messageId` da Z-API |
 | `log_erros` | Falhas do n8n e do Python |
 
+## Z-API Omni
+
+O envio usa a API da [Z-API Omni](https://developer.omni.z-api.io) com um canal do tipo WhatsApp Web (`Z_API_WHATSAPP`), conectado por QR code:
+
+```
+POST https://api.omni.z-api.io/v1/channels/{OMNI_CHANNEL_ID}/messages
+Authorization: Bearer {OMNI_SECRET_KEY}
+
+{ "recipient": { "identifier": "5551999999999" },
+  "content": { "type": "TEXT", "body": { "message": "Olá!" } } }
+```
+
+Nesse tipo de canal não há janela de 24 horas nem templates, então o envio funciona a qualquer momento.
+
 ## Fluxos n8n
 
 - **01 Envio por webhook**: `POST /webhook/enviar-mensagem` com `{"nome": "...", "telefone": "..."}`. Valida o telefone, sanitiza o nome, envia e responde com o `messageId`. Dados inválidos voltam com status 400.
@@ -44,7 +58,7 @@ Envio de mensagens de WhatsApp personalizadas para contatos guardados no Supabas
 
 ## Configuração
 
-Pré-requisitos: Docker, uma conta no [Supabase](https://supabase.com) e uma instância na [Z-API](https://z-api.io) conectada a um WhatsApp.
+Pré-requisitos: Docker, uma conta no [Supabase](https://supabase.com) e uma conta na [Z-API Omni](https://z-api.io) com um canal WhatsApp conectado por QR code.
 
 1. No SQL Editor do Supabase, rode `supabase/schema.sql` e depois `supabase/seed.sql` (troque os telefones do seed pelo seu número).
 2. Copie o arquivo de ambiente e preencha:
@@ -61,7 +75,7 @@ Pré-requisitos: Docker, uma conta no [Supabase](https://supabase.com) e uma ins
    ```
 5. Em http://localhost:5678, crie as credenciais e selecione-as nos nós:
    - **Supabase API**: URL do projeto e chave `service_role`
-   - **Header Auth**: nome `Client-Token`, valor = seu Client-Token da Z-API
+   - **Header Auth**: nome `Authorization`, valor = `Bearer ` seguido da sua Secret Key da Z-API Omni
 6. Publique (ative) os fluxos 01 e 02.
 
 ## Como testar
@@ -94,7 +108,7 @@ pytest
 - Chaves e tokens só no `.env` (fora do git) e nas credenciais do n8n; os JSON dos fluxos não têm nenhum segredo.
 - A chave `service_role` do Supabase fica só no backend. RLS está habilitado nas três tabelas, sem políticas públicas.
 - Telefones mascarados em logs e no histórico; nomes sanitizados antes de entrar na mensagem.
-- O n8n precisa de `N8N_BLOCK_ENV_ACCESS_IN_NODE=false` para ler o ID e o token da instância Z-API nas expressões. É uma escolha para ambiente local; em produção eles iriam para credenciais.
+- O n8n precisa de `N8N_BLOCK_ENV_ACCESS_IN_NODE=false` para ler o ID do canal nas expressões. É uma escolha para ambiente local; a Secret Key fica numa credencial do n8n, nunca no fluxo.
 
 ## Decisões e limitações
 

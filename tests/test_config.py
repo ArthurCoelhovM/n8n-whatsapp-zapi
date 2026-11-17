@@ -6,9 +6,8 @@ from config import ConfigInvalida, carregar_config
 VALIDAS = {
     "SUPABASE_URL": "https://exemplo.supabase.co",
     "SUPABASE_KEY": "chave-teste",
-    "ZAPI_INSTANCE_ID": "instancia-teste",
-    "ZAPI_TOKEN": "token-teste",
-    "ZAPI_CLIENT_TOKEN": "client-teste",
+    "OMNI_SECRET_KEY": "chave-teste",
+    "OMNI_CHANNEL_ID": "canal-teste",
 }
 
 
@@ -38,15 +37,15 @@ def test_variavel_faltando_lista_os_nomes_sem_valores(monkeypatch):
     with pytest.raises(ConfigInvalida) as erro:
         carregar_config()
     texto = str(erro.value)
-    assert "ZAPI_INSTANCE_ID" in texto
-    assert "ZAPI_CLIENT_TOKEN" in texto
+    assert "OMNI_SECRET_KEY" in texto
+    assert "OMNI_CHANNEL_ID" in texto
     assert "SUPABASE_URL" not in texto
     assert "segredo-123" not in texto
 
 
 def test_variavel_so_com_espacos_conta_como_faltando(monkeypatch):
-    definir(monkeypatch, **{**VALIDAS, "ZAPI_TOKEN": "   "})
-    with pytest.raises(ConfigInvalida, match="ZAPI_TOKEN"):
+    definir(monkeypatch, **{**VALIDAS, "OMNI_CHANNEL_ID": "   "})
+    with pytest.raises(ConfigInvalida, match="OMNI_CHANNEL_ID"):
         carregar_config()
 
 

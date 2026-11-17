@@ -6,9 +6,8 @@ from dotenv import load_dotenv
 OBRIGATORIAS = [
     "SUPABASE_URL",
     "SUPABASE_KEY",
-    "ZAPI_INSTANCE_ID",
-    "ZAPI_TOKEN",
-    "ZAPI_CLIENT_TOKEN",
+    "OMNI_SECRET_KEY",
+    "OMNI_CHANNEL_ID",
 ]
 
 TEMPLATE_PADRAO = "Olá, {nome}! Tudo bem com você?"
@@ -22,9 +21,8 @@ class ConfigInvalida(Exception):
 class Config:
     supabase_url: str
     supabase_key: str
-    zapi_instance_id: str
-    zapi_token: str
-    zapi_client_token: str
+    omni_secret_key: str
+    omni_channel_id: str
     limite_contatos: int
     intervalo_segundos: float
     mensagem_template: str
@@ -54,9 +52,8 @@ def carregar_config():
     return Config(
         supabase_url=os.environ["SUPABASE_URL"].strip(),
         supabase_key=os.environ["SUPABASE_KEY"].strip(),
-        zapi_instance_id=os.environ["ZAPI_INSTANCE_ID"].strip(),
-        zapi_token=os.environ["ZAPI_TOKEN"].strip(),
-        zapi_client_token=os.environ["ZAPI_CLIENT_TOKEN"].strip(),
+        omni_secret_key=os.environ["OMNI_SECRET_KEY"].strip(),
+        omni_channel_id=os.environ["OMNI_CHANNEL_ID"].strip(),
         limite_contatos=_inteiro("LIMITE_CONTATOS", 3),
         intervalo_segundos=_inteiro("INTERVALO_SEGUNDOS", 3),
         mensagem_template=os.getenv("MENSAGEM_TEMPLATE", "").strip() or TEMPLATE_PADRAO,

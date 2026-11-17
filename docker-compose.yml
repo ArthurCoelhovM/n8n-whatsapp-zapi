@@ -10,8 +10,7 @@ services:
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
       - N8N_SECURE_COOKIE=false
       - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
-      - ZAPI_INSTANCE_ID=${ZAPI_INSTANCE_ID}
-      - ZAPI_TOKEN=${ZAPI_TOKEN}
+      - OMNI_CHANNEL_ID=${OMNI_CHANNEL_ID}
       - LIMITE_LOTE=${LIMITE_LOTE:-3}
     volumes:
       - n8n_dados:/home/node/.n8n
